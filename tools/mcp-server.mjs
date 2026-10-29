@@ -46,8 +46,14 @@ const TOOLS = [
       additionalProperties: false,
     },
     handler: async (args) => {
-      const result = await core.beginLogin({ wait: args.wait !== false, openBrowser: args.openBrowser !== false })
+      const wait = args.wait !== false
+      const result = await core.beginLogin({ wait, openBrowser: args.openBrowser !== false })
       if (result && result.settle) {
+        if (!wait) {
+          // 不阻塞：授权在后台完成，客户端稍后用 tiktok_status 查询结果
+          result.settle.catch(() => {})
+          return { ok: true, url: result.url, waiting: true, hint: '授权完成后令牌会自动保存，稍后用 tiktok_status 查询' }
+        }
         const settle = await result.settle
         return { ok: true, url: result.url, ...settle }
       }
@@ -181,10 +187,12 @@ const fail = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, me
 async function handle(message) {
   const { id, method, params } = message
   if (method === 'initialize') {
+    // 回显客户端请求的协议版本（支持 2024-11-05 / 2025-06-18 等）
+    const requested = params && typeof params.protocolVersion === 'string' ? params.protocolVersion : ''
     ok(id, {
-      protocolVersion: PROTOCOL_VERSION,
+      protocolVersion: requested || PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: 'tiktok-ads', version: '0.2.0' },
+      serverInfo: { name: 'tiktok-ads', version: '0.2.1' },
     })
     return
   }

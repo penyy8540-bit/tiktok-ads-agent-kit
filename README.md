@@ -197,6 +197,7 @@ tools/
   mcp-server.mjs           stdio MCP server
   panel-preview.mjs        独立运行面板
   daily-report.mjs         Excel 报表生成
+  dev/                     调试脚本（CDP 截图、页面体检等，不参与发布）
   parse-product-export.py  商品表解析
 test/                      35 个单元测试
 ```

@@ -7,7 +7,7 @@
 import fs from 'node:fs'
 import vm from 'node:vm'
 
-const source = fs.readFileSync(new URL('../lib/dashboard.js', import.meta.url), 'utf8')
+const source = fs.readFileSync(new URL('../../lib/dashboard.js', import.meta.url), 'utf8')
 const start = source.indexOf('<script>')
 const end = source.lastIndexOf('</script>')
 if (start < 0 || end < 0) {

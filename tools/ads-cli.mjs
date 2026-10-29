@@ -276,9 +276,12 @@ async function main() {
 /** 拉一遍可用的 GMV Max 账户（带店铺） */
 async function activeAccounts(core) {
   const authorized = (await core.callTool('auth_advertiser_get', {})).data?.list || []
+  // --advertiserId / --advertiser-id 只取指定账户
+  const wanted = flags.advertiserId || flags['advertiser-id'] || ''
   const accounts = []
   for (const account of authorized) {
     const advertiserId = String(account.advertiser_id)
+    if (wanted && advertiserId !== String(wanted)) continue
     try {
       const stores = (await core.callTool('gmv_max_store_list_get', { advertiser_id: advertiserId })).data?.store_list || []
       const store = stores.find((row) => row.is_gmv_max_available === true)

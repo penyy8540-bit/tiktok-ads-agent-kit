@@ -81,7 +81,7 @@ test('the plugin exports the Cordis contract', async () => {
   assert.equal(typeof module.apply, 'function')
 })
 
-test('apply registers five tools with DSH-supported schemas', async () => {
+test('apply registers six tools with DSH-supported schemas', async () => {
   const { module } = await loadPlugin()
   const { context, registrations } = fakeContext()
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tiktok-ads-plugin-'))

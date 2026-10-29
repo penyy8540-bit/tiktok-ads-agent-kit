@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import os from 'node:os'
 import path from 'node:path'
-import { MODES, dataDir, dshHome, normalizeConfig, readWindowsSystemProxy, resolveProxy } from '../lib/config.js'
+import { MODES, dataDir, dshHome, normalizeConfig, readWindowsSystemProxy, redactProxy, resolveProxy } from '../lib/config.js'
 
 test('defaults target the layer endpoint with meta exposure', () => {
   const config = normalizeConfig()
@@ -72,4 +72,13 @@ test('Windows system proxy reader never throws and returns null or a host:port',
   const value = readWindowsSystemProxy()
   assert.ok(value === null || typeof value === 'string')
   if (typeof value === 'string') assert.match(value, /^[^\s;=]+:\d+$/)
+})
+test('redactProxy hides credentials but keeps host and port', () => {
+  assert.equal(redactProxy('http://user:secret@127.0.0.1:7890'), 'http://127.0.0.1:7890（含认证，已隐藏）')
+  assert.equal(redactProxy('http://127.0.0.1:7890'), 'http://127.0.0.1:7890')
+  assert.equal(redactProxy(null), 'none')
+  assert.equal(redactProxy('not a url'), 'none')
+  // 密码不能出现在结果里
+  assert.ok(!redactProxy('http://u:p@127.0.0.1:7890').includes('secret'))
+  assert.ok(!redactProxy('http://u:secret@127.0.0.1:7890').includes('secret'))
 })

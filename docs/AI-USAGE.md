@@ -112,3 +112,10 @@ node tools/ads-cli.mjs export --start 2026-10-20 --end 2026-10-28 --out ./report
 | `code=401xx` | 令牌失效 | 重新 `login` |
 | `连接被关闭` | 代理不稳 | 检查 `TIKTOK_ADS_PROXY`，或重试 |
 | 空数组 | 该区间确实没消耗，或账户/店铺不匹配 | 先 `accounts` 核对 storeId |
+
+## 9. 安全补丁（v0.2.1）
+
+- 面板只接受 Host: 127.0.0.1/localhost，写操作必须是 pplication/json，跨源请求直接 403
+- 代理用户名密码不会出现在日志、状态返回值里（统一 edactProxy 脱敏）
+- 导出目录限制在配置的 exportDir 内（默认桌面「广告/每日广告订单」）
+- 代理断连不再导致宿主崩溃；素材 SKU 缓存 key 已修正
