@@ -1,0 +1,18 @@
+# 本插件只向 profile 追加一行 loader 条目，不替换任何官方 DSH 组件。
+# 需要改配置时，直接改下面 config 里的字段（改完 HMR 会自动重载本插件）。
+- insert:
+    - id: tiktok-ads
+      name: dsh-plugin-tiktok-ads
+      config:
+        # layer：约 40 个核心工具（推荐）；flat：约 400 个全量工具
+        mode: layer
+        # meta：只注册 5 个插件工具（检索 + 调用）；all：把全部 MCP 工具注册成原生工具
+        expose: meta
+        # auto：自动读 HTTPS_PROXY，其次读 Windows 系统代理；off：直连；也可写 http://127.0.0.1:7890
+        proxy: auto
+        # OAuth 回调端口，改端口会导致重新注册 OAuth 客户端
+        callbackPort: 43113
+        requestTimeoutMs: 60000
+        toolCallTimeoutMs: 120000
+        authTimeoutMs: 300000
+        autoOpenBrowser: true

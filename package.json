@@ -1,0 +1,72 @@
+{
+  "name": "dsh-plugin-tiktok-ads",
+  "version": "0.2.0",
+  "description": "TikTok Ads agent kit: OAuth to the official Ads MCP, campaign/creative/SKU reports, a local dashboard, and Excel export. Works as a DeepSeek Harness plugin, a CLI, or a stdio MCP server.",
+  "type": "module",
+  "main": "lib/index.js",
+  "bin": {
+    "tiktok-ads": "./tools/ads-cli.mjs",
+    "tiktok-ads-mcp": "./tools/mcp-server.mjs"
+  },
+  "icon": "./assets/icon.svg",
+  "exports": {
+    ".": "./lib/index.js",
+    "./core": "./lib/core.js",
+    "./queries": "./lib/queries.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./assets/icon.svg",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "assets",
+    "tools",
+    "docs",
+    "cordis.patch.yml",
+    "README.md",
+    "SKILL.md",
+    "AGENTS.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "tiktok",
+    "tiktok-ads",
+    "gmv-max",
+    "mcp",
+    "mcp-server",
+    "agent",
+    "ai-agent",
+    "marketing"
+  ],
+  "license": "MIT",
+  "author": "penyy8540-bit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/penyy8540-bit/tiktok-ads-agent-kit.git"
+  },
+  "homepage": "https://github.com/penyy8540-bit/tiktok-ads-agent-kit#readme",
+  "bugs": {
+    "url": "https://github.com/penyy8540-bit/tiktok-ads-agent-kit/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "verify": "node tools/verify.mjs",
+    "status": "node tools/ads-cli.mjs status",
+    "login": "node tools/ads-cli.mjs login",
+    "report": "node tools/ads-cli.mjs report --days 7 --pretty",
+    "panel": "node tools/panel-preview.mjs --port 8795",
+    "mcp": "node tools/mcp-server.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
