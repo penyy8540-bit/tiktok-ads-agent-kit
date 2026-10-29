@@ -38,7 +38,7 @@
 ### 方式 2：命令行（任何能跑命令的 AI 都能用）
 
 ```bash
-git clone <this-repo> && cd dsh-plugin-tiktok-ads
+git clone https://github.com/penyy8540-bit/tiktok-ads-agent-kit.git && cd tiktok-ads-agent-kit
 node tools/ads-cli.mjs status            # 是否已授权
 node tools/ads-cli.mjs login             # 生成授权链接并打开浏览器
 node tools/ads-cli.mjs accounts          # 已授权账户 + GMV Max 店铺
