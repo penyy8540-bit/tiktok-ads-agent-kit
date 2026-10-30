@@ -20,6 +20,7 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAdsCore } from '../lib/core.js'
+import { createShopClient } from '../lib/shop.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const argv = process.argv.slice(2)
@@ -257,6 +258,64 @@ async function main() {
       const result = await runNode(args)
       emit({ ok: result.code === 0, range, outDir, code: result.code, log: result.log.slice(-20) })
       return
+    }
+    case 'shop': {
+      const shop = createShopClient()
+      const action = String(flags.action || argv[1] || 'status')
+      if (action === 'status') {
+        emit({ ok: true, ...shop.status() })
+        return
+      }
+      if (action === 'login') {
+        const { url, state } = shop.authorizeUrl()
+        emit({
+          ok: true,
+          url,
+          state,
+          steps: [
+            '1) 用浏览器打开 url，登录并同意授权你的 TikTok Shop',
+            '2) 授权后浏览器会跳到你在 Partner Center 配置的 redirect_uri，地址栏里有 code=XXXX',
+            '3) 复制 code，运行：node tools/ads-cli.mjs shop token --code XXXX',
+          ],
+        })
+        return
+      }
+      if (action === 'token') {
+        const code = String(flags.code || '')
+        if (!code) throw new Error('用法：ads-cli shop token --code <auth_code>')
+        const record = await shop.exchangeAuthCode(code)
+        emit({ ok: true, sellerName: record.sellerName, shopId: record.shopId, shopCipherSaved: Boolean(record.shopCipher), accessTokenExpireAt: record.accessTokenExpireAt })
+        return
+      }
+      if (action === 'shops') {
+        emit({ ok: true, result: await shop.authorizedShops() })
+        return
+      }
+      if (action === 'products') {
+        emit({ ok: true, result: await shop.searchProducts({ pageSize: Number(flags.limit) || 20, pageToken: String(flags.token || '') }) })
+        return
+      }
+      if (action === 'orders') {
+        emit({
+          ok: true,
+          result: await shop.searchOrders({
+            createTimeFrom: flags.from ? Number(flags.from) : undefined,
+            createTimeTo: flags.to ? Number(flags.to) : undefined,
+            pageSize: Number(flags.limit) || 20,
+            pageToken: String(flags.token || ''),
+          }),
+        })
+        return
+      }
+      if (action === 'call') {
+        const apiPath = String(flags.path || '')
+        if (!apiPath) throw new Error('用法：ads-cli shop call --path /product/202309/products/search --method POST --body \'{}\'')
+        const query = flags.query ? JSON.parse(String(flags.query)) : {}
+        const body = flags.body ? JSON.parse(String(flags.body)) : null
+        emit({ ok: true, result: await shop.request(apiPath, { method: String(flags.method || 'GET'), query, body }) })
+        return
+      }
+      throw new Error(`未知 shop 子命令：${action}（可用 status/login/token/shops/products/orders/call）`)
     }
     case 'panel': {
       const port = Number(flags.port) || 8795

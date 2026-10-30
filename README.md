@@ -135,6 +135,19 @@ node tools/ads-cli.mjs panel --port 8795     # 或 node tools/panel-preview.mjs 
 
 ---
 
+## 五·五、TikTok Shop（Seller Center）接口
+
+广告 API 与商家 API 是两套授权。商家侧（商品/订单）用 Partner Center 应用接入：
+
+`ash
+node tools/ads-cli.mjs shop status      # 是否已配置/授权
+node tools/ads-cli.mjs shop login       # 打印商家授权链接
+node tools/ads-cli.mjs shop token --code <auth_code>   # 用授权码换令牌
+node tools/ads-cli.mjs shop products    # 商品列表（含上架/更新时间）
+`
+
+完整步骤见 [docs/SHOP-SETUP.md](docs/SHOP-SETUP.md)。
+
 ## 六、Excel 导出
 
 ```bash
