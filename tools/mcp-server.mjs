@@ -192,7 +192,7 @@ async function handle(message) {
     ok(id, {
       protocolVersion: requested || PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: 'tiktok-ads', version: '0.2.3' },
+      serverInfo: { name: 'tiktok-ads', version: '0.2.4' },
     })
     return
   }
