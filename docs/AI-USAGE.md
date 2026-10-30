@@ -119,3 +119,8 @@ node tools/ads-cli.mjs export --start 2026-10-20 --end 2026-10-28 --out ./report
 - 代理用户名密码不会出现在日志、状态返回值里（统一 edactProxy 脱敏）
 - 导出目录限制在配置的 exportDir 内（默认桌面「广告/每日广告订单」）
 - 代理断连不再导致宿主崩溃；素材 SKU 缓存 key 已修正
+## 10. 达人昵称 / 发布时间
+
+- **达人昵称**：identity_get(advertiser_id) 拿发布身份，identity_video_get(advertiser_id, identity_id, identity_type, item_type='VIDEO') 拿作品，把 item_id → display_name 映射起来（插件里缓存在 creator-map.json，30 分钟有效）。
+  只覆盖**已授权投放的达人**（AUTH_CODE 类型），自然流量/其他达人无法解析。
+- **发布时间**：TikTok 广告 Open API **不提供**。identity_video_get 只返回 uth_info.auth_start_time / auth_end_time（授权时间），不是发布时间。需要发布时间只能用商家中心/创作者中心页面查看。
