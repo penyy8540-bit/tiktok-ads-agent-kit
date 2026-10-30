@@ -7,11 +7,8 @@
  *   node tools/panel-preview.mjs                # http://127.0.0.1:8790/
  *   node tools/panel-preview.mjs --port 8899 --no-scan
  */
-import { normalizeConfig, resolveProxy } from '../lib/config.js'
-import { parseProxy } from '../lib/transport.js'
-import { McpSession } from '../lib/mcp.js'
-import { discoverMetadata, refreshAccessToken } from '../lib/oauth.js'
-import { isTokenUsable, readAuth, updateAuth } from '../lib/store.js'
+import { normalizeConfig } from '../lib/config.js'
+import { createAdsCore } from '../lib/core.js'
 import { createPanel } from '../lib/panel.js'
 
 const argv = process.argv.slice(2)
@@ -36,61 +33,32 @@ const settings = normalizeConfig({
   monitorIntervalMinutes: Number(value('--interval', '30')),
 })
 
-const proxy = parseProxy(resolveProxy(settings.proxySetting).proxy)
-let auth = readAuth(settings.dataDir)
-if (!auth.accessToken || !auth.clientId) {
-  console.error(`未授权：${settings.dataDir} 缺少 auth.json（先运行 tools/verify.mjs --login）`)
-  process.exit(1)
-}
-if (!isTokenUsable(auth, settings.resourceUrl)) {
-  const metadata = await discoverMetadata(settings.resourceUrl, { proxy })
-  const tokens = await refreshAccessToken(metadata, { clientId: auth.clientId, refreshToken: auth.refreshToken, resource: settings.resourceUrl }, proxy)
-  auth = updateAuth(settings.dataDir, { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || auth.refreshToken, expiresAt: tokens.expiresAt })
-  console.log('令牌已续期')
-}
+// 与 DSH 插件、CLI、MCP server 共用同一套 core（OAuth / 令牌 / MCP 会话都在里面）
+const core = createAdsCore({ settings, log: (message) => console.log(`[core] ${message}`) })
 
-let currentToken = auth.accessToken
-const session = new McpSession({
-  url: settings.resourceUrl,
-  proxy,
-  timeoutMs: 120_000,
-  getToken: async () => currentToken,
-  onUnauthorized: async () => {
-    const record = readAuth(settings.dataDir)
-    const metadata = await discoverMetadata(settings.resourceUrl, { proxy })
-    const tokens = await refreshAccessToken(metadata, { clientId: record.clientId, refreshToken: record.refreshToken, resource: settings.resourceUrl }, proxy)
-    updateAuth(settings.dataDir, { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || record.refreshToken, expiresAt: tokens.expiresAt })
-    currentToken = tokens.accessToken
-    console.log('令牌被拒绝，已续期')
-  },
-})
 let connected = false
 for (let attempt = 1; attempt <= 4 && !connected; attempt++) {
   try {
-    await session.connect()
+    const session = await core.ensureSession()
     connected = true
+    console.log(`已连接 MCP，工具 ${session.tools.length} 个`)
   } catch (error) {
     console.log(`连接失败（第 ${attempt} 次）：${String(error.message).slice(0, 120)}`)
     if (attempt === 4) throw error
     await new Promise((resolve) => setTimeout(resolve, 2500 * attempt))
   }
 }
-console.log(`已连接 ${session.serverInfo?.name}，工具 ${session.tools.length} 个`)
 
-async function callTool(name, params) {
-  const result = await session.callTool('tool_execute', { tool_name: name, params }, { limit: 400_000, timeoutMs: 180_000 })
-  const data = JSON.parse(result.text)
-  if (data && typeof data === 'object' && typeof data.code === 'number' && data.code !== 0) {
-    throw new Error(`${name} code=${data.code}: ${data.message || ''}`)
-  }
-  return data
-}
+const callTool = (name, params) => core.callTool(name, params)
 
 const panel = createPanel({
   settings,
   callTool,
   log: (message) => console.log(`[panel] ${message}`),
-  getStatus: () => ({ authorized: isTokenUsable(readAuth(settings.dataDir), settings.resourceUrl), mode: settings.mode, resource: settings.resourceUrl }),
+  getStatus: () => {
+    const status = core.status()
+    return { authorized: status.authorized, mode: status.mode, resource: status.resource }
+  },
 })
 const state = await panel.start()
 if (!state.dashboardUrl) {

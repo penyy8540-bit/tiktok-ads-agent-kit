@@ -195,7 +195,7 @@ DSH 插件方式下，这些字段写在 `cordis.patch.yml` 的 `config` 里
 
 ```text
 lib/
-  core.js       与框架无关的核心（OAuth / MCP 会话 / callTool）
+  core.js       与框架无关的核心（OAuth / MCP 会话 / callTool）——插件、CLI、MCP server、独立面板共用同一套
   queries.js    常用查询（账户、广告组报表、素材报表）
   index.js      DSH 插件入口（注册 6 个工具 + 启动面板）
   oauth.js      OAuth DCR + PKCE + 本地回调

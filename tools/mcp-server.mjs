@@ -192,7 +192,7 @@ async function handle(message) {
     ok(id, {
       protocolVersion: requested || PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: 'tiktok-ads', version: '0.3.1' },
+      serverInfo: { name: 'tiktok-ads', version: '0.3.2' },
     })
     return
   }
@@ -226,6 +226,30 @@ async function handle(message) {
 }
 
 let buffer = ''
+// 串行处理请求：保证响应顺序，同时避免同一进程里并发打爆 API
+let queue = Promise.resolve()
+let pending = 0
+let ended = false
+
+function maybeExit() {
+  if (ended && pending === 0) process.exit(0)
+}
+
+function enqueue(message) {
+  pending += 1
+  queue = queue
+    .then(() => handle(message))
+    .catch((error) => {
+      if (message && message.id !== undefined) {
+        fail(message.id, -32603, error instanceof Error ? error.message : String(error))
+      }
+    })
+    .finally(() => {
+      pending -= 1
+      maybeExit()
+    })
+}
+
 process.stdin.setEncoding('utf8')
 process.stdin.on('data', (chunk) => {
   buffer += chunk
@@ -241,9 +265,11 @@ process.stdin.on('data', (chunk) => {
     } catch {
       continue
     }
-    handle(message).catch((error) => {
-      if (message && message.id !== undefined) fail(message.id, -32603, error instanceof Error ? error.message : String(error))
-    })
+    enqueue(message)
   }
 })
-process.stdin.on('end', () => process.exit(0))
+// stdin 关闭时不能立即退出：还有 in-flight 的 tools/call 需要把结果写完
+process.stdin.on('end', () => {
+  ended = true
+  maybeExit()
+})
