@@ -135,8 +135,10 @@ node tools/ads-cli.mjs panel --port 8795     # 或 node tools/panel-preview.mjs 
 
 ---
 
-## 五·五、TikTok Shop（Seller Center）接口
+## 五·五、TikTok Shop（Seller Center）接口 · 实验性（未启用）
 
+> 状态：代码与文档已就绪，但商家资质审核未通过，默认不参与任何流程；等资质通过后再启用。
+>
 广告 API 与商家 API 是两套授权。商家侧（商品/订单）用 Partner Center 应用接入：
 
 `ash
