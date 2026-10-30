@@ -21,6 +21,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAdsCore } from '../lib/core.js'
 import { createShopClient } from '../lib/shop.js'
+import { getAccounts, getCampaignReport, getCreativeReport } from '../lib/queries.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const argv = process.argv.slice(2)
@@ -92,164 +93,29 @@ async function main() {
       return
     }
     case 'accounts': {
-      const authorized = (await core.callTool('auth_advertiser_get', {})).data?.list || []
-      const accounts = []
-      for (const account of authorized) {
-        const advertiserId = String(account.advertiser_id)
-        let stores = []
-        try {
-          stores = (await core.callTool('gmv_max_store_list_get', { advertiser_id: advertiserId })).data?.store_list || []
-        } catch { /* 非 GMV Max 账户 */ }
-        const gmvStores = stores.filter((store) => store.is_gmv_max_available === true)
-        accounts.push({
-          advertiserId,
-          advertiserName: account.advertiser_name || advertiserId,
-          gmvMaxStores: gmvStores.map((store) => ({ storeId: String(store.store_id), storeName: store.store_name })),
-        })
-      }
+      const accounts = await getAccounts(core)
       emit({ ok: true, count: accounts.length, accounts })
       return
     }
     case 'report': {
       const range = resolveRange()
-      const accounts = await activeAccounts(core)
-      const rows = []
-      for (const account of accounts) {
-        const result = await core.callTool('gmv_max_report_get', {
-          advertiser_id: account.advertiserId,
-          store_ids: [account.storeId],
-          start_date: range.start,
-          end_date: range.end,
-          metrics: ['cost', 'orders', 'gross_revenue'],
-          dimensions: ['campaign_id'],
-          page_size: 500,
-        })
-        for (const row of result.data?.list || []) {
-          rows.push({
-            advertiserId: account.advertiserId,
-            store: account.storeName,
-            campaignId: String(row.dimensions?.campaign_id || ''),
-            cost: num(row.metrics?.cost),
-            orders: num(row.metrics?.orders),
-            revenue: num(row.metrics?.gross_revenue),
-          })
-        }
-      }
-      const totals = rows.reduce((acc, row) => ({
-        cost: acc.cost + row.cost,
-        orders: acc.orders + row.orders,
-        revenue: acc.revenue + row.revenue,
-      }), { cost: 0, orders: 0, revenue: 0 })
-      emit({
-        ok: true,
-        range,
-        totals: {
-          ...totals,
-          roi: totals.cost ? Number((totals.revenue / totals.cost).toFixed(2)) : 0,
-          costPerOrder: totals.orders ? Number((totals.cost / totals.orders).toFixed(2)) : 0,
-        },
-        campaigns: rows.sort((left, right) => right.cost - left.cost),
-      })
+      const result = await getCampaignReport(core, range)
+      emit({ ok: true, ...result })
       return
     }
     case 'campaigns': {
       const range = resolveRange()
-      const accounts = await activeAccounts(core)
-      const rows = []
-      for (const account of accounts) {
-        const result = await core.callTool('gmv_max_report_get', {
-          advertiser_id: account.advertiserId,
-          store_ids: [account.storeId],
-          start_date: range.start,
-          end_date: range.end,
-          metrics: ['cost', 'orders', 'gross_revenue'],
-          dimensions: ['campaign_id'],
-          page_size: 500,
-        })
-        for (const row of result.data?.list || []) {
-          const cost = num(row.metrics?.cost)
-          const revenue = num(row.metrics?.gross_revenue)
-          rows.push({
-            advertiserId: account.advertiserId,
-            store: account.storeName,
-            campaignId: String(row.dimensions?.campaign_id || ''),
-            cost,
-            orders: num(row.metrics?.orders),
-            revenue,
-            roi: cost ? Number((revenue / cost).toFixed(2)) : 0,
-          })
-        }
-      }
-      emit({ ok: true, range, count: rows.length, campaigns: rows.sort((left, right) => right.cost - left.cost) })
+      const result = await getCampaignReport(core, range)
+      emit({ ok: true, range, count: result.campaigns.length, campaigns: result.campaigns, truncated: result.truncated, warnings: result.warnings })
       return
     }
     case 'creatives': {
       const range = resolveRange()
-      const accounts = await activeAccounts(core)
-      const rows = []
-      for (const account of accounts) {
-        const campaignResult = await core.callTool('gmv_max_report_get', {
-          advertiser_id: account.advertiserId,
-          store_ids: [account.storeId],
-          start_date: range.start,
-          end_date: range.end,
-          metrics: ['cost'],
-          dimensions: ['campaign_id'],
-          page_size: 100,
-        })
-        const campaignIds = (campaignResult.data?.list || [])
-          .filter((row) => num(row.metrics?.cost) > 0)
-          .map((row) => String(row.dimensions?.campaign_id || ''))
-          .filter(Boolean)
-        if (!campaignIds.length) continue
-        const spuResult = await core.callTool('gmv_max_report_get', {
-          advertiser_id: account.advertiserId,
-          store_ids: [account.storeId],
-          start_date: range.start,
-          end_date: range.end,
-          metrics: ['cost', 'orders'],
-          dimensions: ['item_group_id'],
-          filtering: { campaign_ids: campaignIds },
-          page_size: 1000,
-        })
-        const spuIds = (spuResult.data?.list || [])
-          .filter((row) => num(row.metrics?.cost) > 0 || num(row.metrics?.orders) > 0)
-          .map((row) => String(row.dimensions?.item_group_id || ''))
-          .filter(Boolean)
-        if (!spuIds.length) continue
-        const itemResult = await core.callTool('gmv_max_report_get', {
-          advertiser_id: account.advertiserId,
-          store_ids: [account.storeId],
-          start_date: range.start,
-          end_date: range.end,
-          metrics: ['cost', 'orders', 'gross_revenue', 'product_clicks'],
-          dimensions: ['item_id'],
-          filtering: { campaign_ids: campaignIds, item_group_ids: spuIds },
-          page_size: 1000,
-        })
-        for (const row of itemResult.data?.list || []) {
-          const cost = num(row.metrics?.cost)
-          const revenue = num(row.metrics?.gross_revenue)
-          rows.push({
-            advertiserId: account.advertiserId,
-            store: account.storeName,
-            itemId: String(row.dimensions?.item_id || ''),
-            cost,
-            orders: num(row.metrics?.orders),
-            revenue,
-            roi: cost ? Number((revenue / cost).toFixed(2)) : 0,
-            clicks: num(row.metrics?.product_clicks),
-          })
-        }
-      }
-      emit({
-        ok: true,
-        range,
-        count: rows.length,
-        creatives: rows.filter((row) => row.itemId && row.itemId !== '-1').sort((left, right) => right.cost - left.cost),
-      })
+      const result = await getCreativeReport(core, range)
+      emit({ ok: true, ...result })
       return
     }
+
     case 'export': {
       const range = resolveRange()
       const outDir = String(flags.out || path.join(process.cwd(), 'reports'))
@@ -333,29 +199,6 @@ async function main() {
 }
 
 /** 拉一遍可用的 GMV Max 账户（带店铺） */
-async function activeAccounts(core) {
-  const authorized = (await core.callTool('auth_advertiser_get', {})).data?.list || []
-  // --advertiserId / --advertiser-id 只取指定账户
-  const wanted = flags.advertiserId || flags['advertiser-id'] || ''
-  const accounts = []
-  for (const account of authorized) {
-    const advertiserId = String(account.advertiser_id)
-    if (wanted && advertiserId !== String(wanted)) continue
-    try {
-      const stores = (await core.callTool('gmv_max_store_list_get', { advertiser_id: advertiserId })).data?.store_list || []
-      const store = stores.find((row) => row.is_gmv_max_available === true)
-      if (!store) continue
-      accounts.push({
-        advertiserId,
-        advertiserName: account.advertiser_name || advertiserId,
-        storeId: String(store.store_id),
-        storeName: store.store_name || String(store.store_id),
-      })
-    } catch { /* skip */ }
-  }
-  return accounts
-}
-
 function runNode(args) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, args, { windowsHide: true })
