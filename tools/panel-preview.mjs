@@ -42,9 +42,17 @@ const panel = createPanel({
   settings,
   callTool,
   log: (message) => console.log(`[panel] ${message}`),
-  getStatus: () => {
+  getStatus: async () => {
+    const health = await core.probeProxy()
     const status = core.status()
-    return { authorized: status.authorized, mode: status.mode, resource: status.resource }
+    return {
+      authorized: status.authorized,
+      mode: status.mode,
+      resource: status.resource,
+      proxy: status.proxy,
+      proxyOk: health.ok,
+      proxyHint: health.hint,
+    }
   },
 })
 const state = await panel.start()
