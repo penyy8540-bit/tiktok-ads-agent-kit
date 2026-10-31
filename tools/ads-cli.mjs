@@ -64,6 +64,8 @@ async function main() {
 
   switch (command) {
     case 'status': {
+      // 先探一次代理：proxyOk 才是真实状态（status 本身不发网络请求）
+      await core.probeProxy()
       emit(core.status())
       return
     }
