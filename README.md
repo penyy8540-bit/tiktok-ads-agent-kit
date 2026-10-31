@@ -80,6 +80,7 @@ node tools/ads-cli.mjs panel --port 8795 # 可视化面板（不依赖 DSH）
 `tiktok_campaigns`、`tiktok_creatives`、`tiktok_tools_search`、`tiktok_call`、`tiktok_export`。
 
 > 更细的 AI 使用说明（提示词模板、字段解释）见 [docs/AI-USAGE.md](docs/AI-USAGE.md)。
+> 商品表（SKU / 商品名）怎么从卖家中心导出并导入见 [docs/PRODUCT-IMPORT.md](docs/PRODUCT-IMPORT.md)。
 
 ---
 
@@ -141,7 +142,7 @@ node tools/ads-cli.mjs panel --port 8795     # 或 node tools/panel-preview.mjs 
 - **广告组**：广告组 → SKU 占比 → 素材下钻（状态筛选、排序、作品 ID 搜索、**达人昵称**）
 - **AI 监控投放**：规则巡检（结论 / 止损 / 检查 / 扩量动作）＋ 一键复制摘要
 - **数据导出**：选日期区间导出与桌面版同格式的 xlsx，可直接在网页下载
-- **商品信息**：上传卖家中心「商品批量编辑」导出的 Excel，合并商品 × 广告数据
+- **商品信息**：上传卖家中心「商品批量编辑」导出的 Excel，合并商品 × 广告数据（SKU 编码/商品名就来自这份表）→ **怎么导出：[docs/PRODUCT-IMPORT.md](docs/PRODUCT-IMPORT.md)**
 - **诊断 beta**：待校准，仅作参考
 
 > 面板只监听 `127.0.0.1`，仅本机可访问。
