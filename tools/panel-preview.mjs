@@ -36,19 +36,6 @@ const settings = normalizeConfig({
 // 与 DSH 插件、CLI、MCP server 共用同一套 core（OAuth / 令牌 / MCP 会话都在里面）
 const core = createAdsCore({ settings, log: (message) => console.log(`[core] ${message}`) })
 
-let connected = false
-for (let attempt = 1; attempt <= 4 && !connected; attempt++) {
-  try {
-    const session = await core.ensureSession()
-    connected = true
-    console.log(`已连接 MCP，工具 ${session.tools.length} 个`)
-  } catch (error) {
-    console.log(`连接失败（第 ${attempt} 次）：${String(error.message).slice(0, 120)}`)
-    if (attempt === 4) throw error
-    await new Promise((resolve) => setTimeout(resolve, 2500 * attempt))
-  }
-}
-
 const callTool = (name, params) => core.callTool(name, params)
 
 const panel = createPanel({
@@ -75,5 +62,14 @@ if (!has('--no-scan')) {
     console.log(`首次扫描失败：${error.message}`)
   }
 }
+// 后台探一次连接：只用来在控制台提示「代理是否可用」，不阻塞面板启动
+core
+  .ensureSession()
+  .then((session) => console.log(`已连接 MCP，工具 ${session.tools.length} 个`))
+  .catch((error) => {
+    console.log(`⚠ 暂时连不上 TikTok（通常是代理没开）：${String(error.message).slice(0, 100)}`)
+    console.log('  面板照常可用（显示上次缓存的数据）；代理恢复后点「刷新」即可。')
+  })
+
 console.log('按 Ctrl+C 退出')
 setInterval(() => {}, 1 << 30)

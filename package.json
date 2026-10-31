@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-tiktok-ads",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "TikTok Ads agent kit: OAuth to the official Ads MCP, campaign/creative/SKU reports, a local dashboard, and Excel export. Works as a DeepSeek Harness plugin, a CLI, or a stdio MCP server.",
   "type": "module",
   "main": "lib/index.js",
