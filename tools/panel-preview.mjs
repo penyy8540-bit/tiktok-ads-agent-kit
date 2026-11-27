@@ -42,6 +42,11 @@ const panel = createPanel({
   settings,
   callTool,
   log: (message) => console.log(`[panel] ${message}`),
+  // 面板里点「重新授权」时直接起 OAuth（回调服务也由 core 管）
+  startLogin: async () => {
+    const login = await core.beginLogin({ wait: false, openBrowser: true })
+    return { url: login.url }
+  },
   getStatus: async () => {
     const health = await core.probeProxy()
     const status = core.status()
